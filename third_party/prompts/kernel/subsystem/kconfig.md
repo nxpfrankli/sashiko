@@ -91,6 +91,10 @@ approaches:
   depends on SOME_SUBSYSTEM
   ```
 
+## Unusual but valid Kconfig symbols
+
+- `I3C_OR_I2C` is a valid Kconfig symbol.
+
 ## Quick Checks
 
 - **Selected symbol existence**: Verify every `select FOO` references a
