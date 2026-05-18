@@ -141,6 +141,7 @@ pub struct Finding {
     pub severity_explanation: Option<String>,
     pub problem: String,
     pub preexisting: Option<bool>,
+    pub locations: Option<serde_json::Value>,
 }
 
 pub struct EmailOutboxRow {
@@ -560,6 +561,7 @@ impl Database {
         let _ = self
             .try_add_column("findings", "preexisting", "INTEGER")
             .await;
+        let _ = self.try_add_column("findings", "locations", "TEXT").await;
         // Ignore errors for these as they might fail on new DBs or if already migrated
         let _ = self
             .conn
@@ -872,16 +874,21 @@ impl Database {
 
     pub async fn create_finding(&self, finding: Finding) -> Result<()> {
         let preexisting_val = finding.preexisting.map(|b| if b { 1 } else { 0 });
+        let locations_val = finding
+            .locations
+            .as_ref()
+            .and_then(|v| serde_json::to_string(v).ok());
         self.conn
             .execute(
-                "INSERT INTO findings (review_id, severity, severity_explanation, problem, preexisting)
-             VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO findings (review_id, severity, severity_explanation, problem, preexisting, locations)
+             VALUES (?, ?, ?, ?, ?, ?)",
                 libsql::params![
                     finding.review_id,
                     finding.severity as i32,
                     finding.severity_explanation,
                     finding.problem,
                     preexisting_val,
+                    locations_val,
                 ],
             )
             .await?;
@@ -925,6 +932,7 @@ impl Database {
                         .map(|s| s.to_string());
 
                     let preexisting = f.get("preexisting").and_then(|v| v.as_bool());
+                    let locations = f.get("locations").cloned();
 
                     let severity = Severity::from_str(severity_str);
 
@@ -935,6 +943,7 @@ impl Database {
                             severity_explanation,
                             problem,
                             preexisting,
+                            locations,
                         })
                         .await;
                 }
@@ -3229,7 +3238,7 @@ impl Database {
         for (review_id, patch_id, inline_review, summary, patch_message_id, index) in temp_reviews {
             // Fetch findings for this review
             let mut findings_rows = self.conn.query(
-                "SELECT severity, problem, severity_explanation, preexisting FROM findings WHERE review_id = ?",
+                "SELECT severity, problem, severity_explanation, preexisting, locations FROM findings WHERE review_id = ?",
                 libsql::params![review_id],
             ).await?;
 
@@ -3247,12 +3256,16 @@ impl Database {
                 let severity_explanation: Option<String> = f_row.get(2).ok();
                 let preexisting_int: Option<i64> = f_row.get(3).ok();
                 let preexisting = preexisting_int.map(|val| val != 0);
+                let locations_str: Option<String> = f_row.get(4).ok();
+                let locations =
+                    locations_str.and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok());
 
                 findings.push(json!({
                     "severity": severity,
                     "problem": problem,
                     "severity_explanation": severity_explanation,
                     "preexisting": preexisting,
+                    "locations": locations,
                 }));
             }
 

@@ -133,6 +133,7 @@ async fn test_findings_sum_across_patches() {
         severity_explanation: Some("low1".into()),
         problem: "low1".into(),
         preexisting: None,
+        locations: None,
     })
     .await
     .unwrap();
@@ -142,6 +143,7 @@ async fn test_findings_sum_across_patches() {
         severity_explanation: Some("low2".into()),
         problem: "low2".into(),
         preexisting: None,
+        locations: None,
     })
     .await
     .unwrap();
@@ -151,6 +153,7 @@ async fn test_findings_sum_across_patches() {
         severity_explanation: Some("high1".into()),
         problem: "high1".into(),
         preexisting: None,
+        locations: None,
     })
     .await
     .unwrap();
@@ -162,6 +165,7 @@ async fn test_findings_sum_across_patches() {
         severity_explanation: Some("low3".into()),
         problem: "low3".into(),
         preexisting: None,
+        locations: None,
     })
     .await
     .unwrap();
@@ -171,6 +175,7 @@ async fn test_findings_sum_across_patches() {
         severity_explanation: Some("crit1".into()),
         problem: "crit1".into(),
         preexisting: None,
+        locations: None,
     })
     .await
     .unwrap();
@@ -180,6 +185,7 @@ async fn test_findings_sum_across_patches() {
         severity_explanation: Some("crit2".into()),
         problem: "crit2".into(),
         preexisting: None,
+        locations: None,
     })
     .await
     .unwrap();

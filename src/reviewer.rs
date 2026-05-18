@@ -1267,6 +1267,7 @@ impl Reviewer {
                                             .as_str()
                                             .map(|s| s.to_string());
                                         let preexisting = f["preexisting"].as_bool();
+                                        let locations = f.get("locations").cloned();
 
                                         let _ = ctx
                                             .db
@@ -1276,6 +1277,7 @@ impl Reviewer {
                                                 severity_explanation,
                                                 problem,
                                                 preexisting,
+                                                locations,
                                             })
                                             .await;
                                     }
