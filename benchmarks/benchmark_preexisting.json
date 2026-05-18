@@ -1,0 +1,72 @@
+[
+    {
+        "Commit": "057e55f337c5bb2aecc8967dc045c266a4e6c49d",
+        "subsystem": "LKML",
+        "problem_description": "Ineffective Fix / Out-of-Bounds Read: The patch fails to prevent reading past the mapped memory region because the size is rounded back up to a 16-byte boundary.",
+        "file": "drivers/gpu/drm/msm/dsi/dsi_host.c",
+        "original_patch_id": 14480
+    },
+    {
+        "Commit": "62e062a29ad5133f67c20b333ba0a952a99161ae",
+        "subsystem": "LKML",
+        "problem_description": "Data race between concurrent `rk_iommu_attach_device()` and `rk_iommu_zap_iova()` due to early list addition",
+        "file": "drivers/iommu/rockchip-iommu.c",
+        "original_patch_id": 14445
+    },
+    {
+        "Commit": "8478a729c0462273188263136880480729e9efca",
+        "subsystem": "netfilter-devel",
+        "problem_description": "Missing memory barrier in lockless readers leads to stale data reads when elements are reused.",
+        "file": "net/netfilter/ipset/ip_set_hash_gen.h",
+        "original_patch_id": 14415
+    },
+    {
+        "Commit": "3296c3012a9d9a27e81e34910384e55a6ff3cff0",
+        "subsystem": "LKML",
+        "problem_description": "NULL pointer dereference due to `session_fd_check` clearing `fp->tcon` concurrently",
+        "file": "fs/smb/server/smb2pdu.c",
+        "original_patch_id": 14390
+    },
+    {
+        "Commit": "b3d945ba42dd640255492a523baeb6b6946a99bf",
+        "subsystem": "LKML",
+        "problem_description": "The newly added error path fails to restore `vdev->minor = -1` before returning, which violates the API contract and causes memory leaks in caller drivers.",
+        "file": "drivers/media/v4l2-core/v4l2-dev.c",
+        "original_patch_id": 14346
+    },
+    {
+        "Commit": "0dc7117da8f92dd5fe077d712a756eccbe377d40",
+        "subsystem": "LKML",
+        "problem_description": "Error Path Resource Leak / Filesystem Corruption",
+        "file": "fs/ntfs3/index.c",
+        "original_patch_id": 14295
+    },
+    {
+        "Commit": "94ae8c3fee94a87bdf982d5559f8037c6c562657",
+        "subsystem": "LKML",
+        "problem_description": "Pre-existing off-by-one error in trailing match loop causes silent data corruption.",
+        "file": "fs/smb/client/compress/lz77.c",
+        "original_patch_id": 14237
+    },
+    {
+        "Commit": "94ae8c3fee94a87bdf982d5559f8037c6c562657",
+        "subsystem": "LKML",
+        "problem_description": "Integer overflow in `lz77_compressed_alloc_size` leading to heap buffer overflow",
+        "file": "fs/smb/client/compress/lz77.c",
+        "original_patch_id": 14235
+    },
+    {
+        "Commit": "3296c3012a9d9a27e81e34910384e55a6ff3cff0",
+        "subsystem": "LKML",
+        "problem_description": "Pre-existing logic error in bitmask validation allows clients to bypass parameter checks.",
+        "file": "fs/smb/server/smb2pdu.c",
+        "original_patch_id": 14234
+    },
+    {
+        "Commit": "ee08ec51a0a01ed8702a7f91e5102dad92319172",
+        "subsystem": "LKML",
+        "problem_description": "`sso_led_freq_set()` incorrectly shifts values and overlaps bitmasks, corrupting adjacent register fields. This problem wasn't introduced by this patch, but it is a severe pre-existing bug.",
+        "file": "drivers/leds/blink/leds-lgm-sso.c",
+        "original_patch_id": 14233
+    }
+]
