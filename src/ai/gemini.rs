@@ -359,7 +359,7 @@ impl GeminiClient {
             .and_then(|h| h.to_str().ok())
             .and_then(|s| s.parse::<f64>().ok());
 
-        let error_text = res.text().await?;
+        let error_text = redact_secret(&res.text().await?);
 
         if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
             let retry_seconds = if let Some(secs) = retry_after_duration {

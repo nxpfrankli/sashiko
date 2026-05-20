@@ -16,6 +16,7 @@ use crate::ai::{
     AiErrorClass, AiProvider, AiRequest, AiResponse, AiRole, AiUsage, ClassifyAiError,
     ProviderCapabilities, ToolCall, classify_status_code, decode_stdio_ai_response,
 };
+use crate::utils::redact_secret;
 use anyhow::{Context, Result, bail};
 use async_trait::async_trait;
 use reqwest::Client;
@@ -266,14 +267,20 @@ impl ClaudeClient {
             );
         }
 
-        let res = self
+        let res = match self
             .client
             .post(&self.base_url)
             .headers(headers)
             .json(body)
             .send()
             .await
-            .context("Failed to send request to Claude API")?;
+        {
+            Ok(res) => res,
+            Err(e) => {
+                let err_str = redact_secret(&e.to_string());
+                anyhow::bail!("Failed to send request to Claude API: {}", err_str);
+            }
+        };
 
         let status = res.status();
 
@@ -303,6 +310,7 @@ impl ClaudeClient {
             let error_body = res
                 .text()
                 .await
+                .map(|t| redact_secret(&t))
                 .unwrap_or_else(|_| "Unknown error".to_string());
 
             match status.as_u16() {

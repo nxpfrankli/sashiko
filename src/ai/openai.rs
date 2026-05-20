@@ -261,7 +261,7 @@ impl OpenAiCompatClient {
             .and_then(|s| s.parse::<u64>().ok())
             .map(Duration::from_secs);
 
-        let error_text = res.text().await.unwrap_or_default();
+        let error_text = redact_secret(&res.text().await.unwrap_or_default());
 
         match status_code {
             429 => {
