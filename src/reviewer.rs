@@ -1523,6 +1523,15 @@ async fn run_review_tool(
         },
     ]);
 
+    cmd.env_clear();
+
+    // Only restore critical, non-sensitive system variables
+    for var in &["PATH", "HOME", "USER", "LANG", "LC_ALL", "TERM"] {
+        if let Ok(val) = std::env::var(var) {
+            cmd.env(var, val);
+        }
+    }
+
     cmd.env("NO_COLOR", "1");
     cmd.env("SASHIKO_LOG_PLAIN", "1");
 
