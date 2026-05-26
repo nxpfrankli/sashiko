@@ -157,6 +157,7 @@ cc = ["linux-modules@vger.kernel.org"]
 [subsystems.nova-gpu]
 lists = ["nova-gpu@lists.linux.dev"]
 reply_all = true
+reply_to_author = true
 cc = ["Danilo Krummrich <dakr@kernel.org>", "Alexandre Courbot <acourbot@nvidia.com>"]
 
 [subsystems.linux-btrfs]
