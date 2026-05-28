@@ -1677,25 +1677,53 @@ Example Output:
             self.global_history.push(assistant_msg);
 
             if let Some(tool_calls) = resp.tool_calls {
-                let mut tool_responses = Vec::new();
-                for call in tool_calls {
-                    let result = match self
-                        .tools
-                        .call(&call.function_name, call.arguments.clone())
-                        .await
-                    {
-                        Ok(v) => v.to_string(),
-                        Err(e) => json!({"error": e.to_string()}).to_string(),
-                    };
-                    tool_responses.push(AiMessage {
-                        role: AiRole::Tool,
-                        content: Some(result),
-                        thought: None,
-                        thought_signature: None,
-                        tool_calls: None,
-                        tool_call_id: Some(call.id.clone()),
-                    });
+                let mut tool_responses_map = std::collections::HashMap::new();
+                let mut calls_to_run = Vec::with_capacity(tool_calls.len());
+
+                for call in &tool_calls {
+                    let name = call.function_name.clone();
+                    let args = call.arguments.clone();
+                    let call_id = call.id.clone();
+                    calls_to_run.push((call_id, name, args));
                 }
+
+                let futures: Vec<_> = calls_to_run
+                    .into_iter()
+                    .map(|(call_id, name, args)| {
+                        let tools = &self.tools;
+                        async move {
+                            let res = match tools.call(&name, args).await {
+                                Ok(v) => v.to_string(),
+                                Err(e) => json!({"error": e.to_string()}).to_string(),
+                            };
+                            (call_id, res)
+                        }
+                    })
+                    .collect();
+
+                let results = futures::future::join_all(futures).await;
+
+                for (call_id, result) in results {
+                    tool_responses_map.insert(
+                        call_id.clone(),
+                        AiMessage {
+                            role: AiRole::Tool,
+                            content: Some(result),
+                            thought: None,
+                            thought_signature: None,
+                            tool_calls: None,
+                            tool_call_id: Some(call_id),
+                        },
+                    );
+                }
+
+                let mut tool_responses = Vec::with_capacity(tool_calls.len());
+                for call in tool_calls {
+                    if let Some(resp_msg) = tool_responses_map.remove(&call.id) {
+                        tool_responses.push(resp_msg);
+                    }
+                }
+
                 local_history.extend(tool_responses.clone());
                 self.global_history.extend(tool_responses);
             } else if resp.content.is_some() || resp.thought.is_some() {
@@ -2255,5 +2283,6 @@ mod tests {
             err.downcast_ref::<ReviewError>().is_some(),
             "FormatRejection must downcast to ReviewError"
         );
+
     }
 }
