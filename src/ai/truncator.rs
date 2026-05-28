@@ -234,7 +234,12 @@ impl Truncator {
         }
 
         let (start_focus, end_focus) = if let Some(range) = focus_lines {
-            (range.start.max(1) - 1, range.end.min(total_lines))
+            let (start, end) = if range.start > range.end {
+                (range.end, range.start)
+            } else {
+                (range.start, range.end)
+            };
+            (start.max(1) - 1, end.min(total_lines))
         } else {
             // If no focus, default to top part (sequential).
             let seq_res = Self::truncate_sequential(content, max_tokens);
@@ -437,6 +442,28 @@ mod tests {
         );
         // keep_end: (105 + 50).min(200) = 155.
         // lines 156 to 200 collapsed (45 lines).
+        assert!(
+            res.content
+                .contains("... [45 lines collapsed (lines 156-200)] ...")
+        );
+    }
+
+    #[test]
+    fn test_truncate_code_reverse_range() {
+        let code = (1..=200)
+            .map(|i| format!("code line {}", i))
+            .collect::<Vec<_>>()
+            .join("\n");
+        // With focus 105 to 100 (reverse range)
+        let start = 105;
+        let end = 100;
+        let res = Truncator::truncate_code(&code, Some(start..end), 500);
+        assert!(res.truncated);
+        // Should not panic! And it should swap 100 and 105, resulting in same behavior as 100..105
+        assert!(
+            res.content
+                .contains("... [49 lines collapsed (lines 1-49)] ...")
+        );
         assert!(
             res.content
                 .contains("... [45 lines collapsed (lines 156-200)] ...")
