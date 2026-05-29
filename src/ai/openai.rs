@@ -193,12 +193,23 @@ impl OpenAiCompatClient {
     /// path.  Our `post_request` POSTs directly to `self.base_url`, so we
     /// ensure the full path is present.
     fn normalize_base_url(url: &str) -> String {
-        let url = url.trim_end_matches('/');
-        if url.ends_with("/chat/completions") {
-            url.to_string()
-        } else {
-            format!("{}/chat/completions", url)
-        }
+        let trimmed = url.trim_end_matches('/');
+
+        let (base, path) = match trimmed.split_once("://") {
+            Some((scheme, rest)) => match rest.split_once('/') {
+                Some((host, path)) => (format!("{scheme}://{host}"), format!("/{}", path)),
+                None => (trimmed.to_string(), String::new()),
+            },
+            None => return String::new(),
+        };
+
+        let path = match path.as_str() {
+            "" => "/chat/completions",
+            "/v1" | "/v1/chat/completions" => "/v1/chat/completions",
+            _ => return String::new(),
+        };
+
+        format!("{base}{path}")
     }
 
     pub fn default_base_url_for_model(model: &str) -> String {
@@ -1203,6 +1214,26 @@ mod tests {
         assert_eq!(
             OpenAiCompatClient::normalize_base_url("http://localhost:1234"),
             "http://localhost:1234/chat/completions"
+        );
+        // Test the specific nested bogus path scenario we analyzed
+        assert_eq!(
+            OpenAiCompatClient::normalize_base_url("http://localhost:1234/v1/text/completions"),
+            ""
+        );
+        // Bare host with different host
+        assert_eq!(
+            OpenAiCompatClient::normalize_base_url("https://openai.com"),
+            "https://openai.com/chat/completions"
+        );
+        // Test arbitrary deep nested paths that shouldn't be accepted
+        assert_eq!(
+            OpenAiCompatClient::normalize_base_url("http://localhost:1234/v1/v1v1/text/completions"),
+            ""
+        );
+        // Test strings completely lacking a valid protocol scheme format
+        assert_eq!(
+            OpenAiCompatClient::normalize_base_url("completely-broken-input-string"),
+            ""
         );
     }
 }
