@@ -698,7 +698,7 @@ impl AiProvider for StdioClaudeClient {
             .reader_started
             .swap(true, std::sync::atomic::Ordering::SeqCst)
         {
-            crate::ai::start_stdin_reader(self.registry.clone());
+            crate::ai::start_stdin_reader(std::sync::Arc::downgrade(&self.registry));
         }
 
         let tx_id = self.registry.next_id();

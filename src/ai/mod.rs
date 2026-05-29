@@ -637,7 +637,7 @@ impl Default for AtomicWriter {
     }
 }
 
-pub(crate) fn start_stdin_reader(registry: std::sync::Arc<IpcRegistry>) {
+pub(crate) fn start_stdin_reader(registry: std::sync::Weak<IpcRegistry>) {
     tokio::spawn(async move {
         use tokio::io::{AsyncBufReadExt, BufReader};
         let stdin = tokio::io::stdin();
@@ -645,12 +645,20 @@ pub(crate) fn start_stdin_reader(registry: std::sync::Arc<IpcRegistry>) {
         let mut lines = reader.lines();
 
         while let Ok(Some(line)) = lines.next_line().await {
+            let active_registry = match registry.upgrade() {
+                Some(r) => r,
+                None => {
+                    tracing::info!("IPC Registry dropped, shutting down stdin reader task.");
+                    break;
+                }
+            };
+
             if let Ok(envelope) = serde_json::from_str::<IpcEnvelope>(&line) {
                 match envelope.msg_type.as_str() {
                     "ai_response" => {
                         if let Ok(payload) = serde_json::from_value::<AiResponse>(envelope.payload)
                         {
-                            registry.dispatch(envelope.tx_id, Ok(payload)).await;
+                            active_registry.dispatch(envelope.tx_id, Ok(payload)).await;
                         } else {
                             eprintln!(
                                 "CRITICAL PROTOCOL ERROR: Failed to parse payload as AiResponse for tx_id {}",
@@ -663,7 +671,7 @@ pub(crate) fn start_stdin_reader(registry: std::sync::Arc<IpcRegistry>) {
                         if let Ok(payload) =
                             serde_json::from_value::<RemoteAiErrorPayload>(envelope.payload)
                         {
-                            registry
+                            active_registry
                                 .dispatch(envelope.tx_id, Err(payload.into_error()))
                                 .await;
                         } else {
@@ -688,12 +696,14 @@ pub(crate) fn start_stdin_reader(registry: std::sync::Arc<IpcRegistry>) {
             }
         }
 
-        registry
-            .abort_all(RemoteAiError {
-                message: "IPC channel disconnected (stdin closed)".to_string(),
-                class: AiErrorClass::Fatal,
-            })
-            .await;
+        if let Some(active_registry) = registry.upgrade() {
+            active_registry
+                .abort_all(RemoteAiError {
+                    message: "IPC channel disconnected (stdin closed)".to_string(),
+                    class: AiErrorClass::Fatal,
+                })
+                .await;
+        }
     });
 }
 
